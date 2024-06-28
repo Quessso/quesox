@@ -1,33 +1,36 @@
-name: github pages # 名字自取
+name: hugo-blog
 
 on:
   push:
     branches:
-      - main  # 这里的意思是当 main分支发生push的时候，运行下面的jobs，这里先改为github-actions
+      - main  # 博客根目录的默认分支，这里是main，有时也是master
+  pull_request:
 
 jobs:
-  deploy: # 任务名自取
-    runs-on: ubuntu-latest	# 在什么环境运行任务
+  deploy:
+    runs-on: ubuntu-20.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
     steps:
-      - uses: actions/checkout@v2	# 引用actions/checkout这个action，与所在的github仓库同名
-        with:
-          submodules: true  # Fetch Hugo themes (true OR recursive) 获取submodule主题
-          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+      - uses: actions/checkout@v2
+#         with:               # 如果你安装主题时用的是git submodule add
+#           submodules: true  # 那么这三行不必注释掉，这一行填写 true
+#           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
 
-      - name: Setup Hugo	# 步骤名自取
-        uses: peaceiris/actions-hugo@v2	# hugo官方提供的action，用于在任务环境中获取hugo
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
         with:
-          hugo-version: 'latest'	# 获取最新版本的hugo
-          # extended: true
+          hugo-version: '0.127.0'  # 填写你的hugo版本，可用hugo version查看
+          extended: true          # 如果你使用的不是extended版本的hugo，将true改为false
 
       - name: Build
-        run: hugo --minify	# 使用hugo构建静态网页
+        run: hugo --minify
 
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3	# 一个自动发布github pages的action
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.ref == 'refs/heads/main' }}  # 注意填写main或者master
         with:
-          # github_token: ${{ secrets.GITHUB_TOKEN }} 该项适用于发布到源码相同repo的情况，不能用于发布到其他repo
-          external_repository: quessso/quessso.github.io	# 发布到哪个repo
-          personal_token: ${{ secrets.QUESO }}	# 发布到其他repo需要提供上面生成的personal access token
-          publish_dir: ./public	# 注意这里指的是要发布哪个文件夹的内容，而不是指发布到目的仓库的什么位置，因为hugo默认生成静态网页到public文件夹，所以这里发布public文件夹里的内容
-          publish_branch: main	# 发布到哪个branch
+          personal_token: ${{ secrets.QUESO }} # 如果secret取了其他名称，将PERSONAL_TOKEN替换掉
+          external_repository: Quessso/quessso.github.io # 填写远程仓库，不一定是这个格式，按照自己的情况写 
+          publish_dir: ./public
+
